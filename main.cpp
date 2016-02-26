@@ -51,8 +51,6 @@ int bw_count(int dec){
 
     int b = dec % 2;
 
-
-
     while(dec > 0){
 
         bin_weight = bin_weight + b;
@@ -60,16 +58,24 @@ int bw_count(int dec){
         dec = (dec-b)/2;
 
         b = dec % 2;
-
-
-
     }
-
 
     std::cout<<bin_weight;
     return bin_weight;
 
     }
+
+
+struct minterm{
+
+    int mt;
+
+    list<int> bin = convert_to_binary(mt);
+
+    int bin_weight = bw_count(mt);
+
+
+};
 
 
 
