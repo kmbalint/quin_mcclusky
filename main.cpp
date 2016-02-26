@@ -4,6 +4,7 @@
 #include <sstream>
 #include <list>
 #include <vector>
+#include <cmath>
 
 
 using namespace genv;
@@ -74,8 +75,63 @@ struct minterm{
 
     int bin_weight = bw_count(mt);
 
-
 };
+
+bool is_neighbour(vector<minterm> m1, vector<minterm> m2){
+
+    bool neighbour = false;
+
+    int i = 0;
+
+    int mt1_sum = 0;
+
+    int mt2_sum = 0;
+
+    int bin_diff = 0;
+
+    bool is_bin_diff_one = true;
+
+    bool is_higher_than = true;
+
+    while(i < m1.size()){
+
+        mt1_sum = mt1_sum + m1[i].mt;
+
+        mt2_sum = mt2_sum + m2[i].mt;
+
+        bin_diff = bin_diff + abs(m1[i].bin_weight - m2[i].bin_weight);
+
+        if (abs(m1[i].bin_weight - m2[i].bin_weight) != 1) is_bin_diff_one = false;
+
+        int j = 0;
+
+        while(j < m2.size()){
+
+            if ((m1[i].mt > m2[j].mt && m1[i].bin_weight > m2[i].bin_weight) || (m1[i].mt < m2[j].mt && m1[i].bin_weight < m2[i].bin_weight)) is_higher_than = false;
+
+        }
+
+        i++;
+
+    }
+
+    int mt_sum = mt1_sum + mt2_sum;
+
+    bool is_power_of_two = true;
+
+    while (((mt_sum % 2) == 0) && mt_sum > 1) {
+
+        mt_sum /= 2;
+
+    }
+
+    if (mt_sum != 1) is_power_of_two = false;
+
+    if (is_bin_diff_one && is_higher_than && is_power_of_two) neighbour = true;
+
+    return neighbour;
+
+}
 
 
 
