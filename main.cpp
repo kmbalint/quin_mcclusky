@@ -45,6 +45,32 @@ std::list<int> convert_to_binary(int dec){
 
     }
 
+int bw_count(int dec){
+
+    int bin_weight = 0;
+
+    int b = dec % 2;
+
+
+
+    while(dec > 0){
+
+        bin_weight = bin_weight + b;
+
+        dec = (dec-b)/2;
+
+        b = dec % 2;
+
+
+
+    }
+
+
+    std::cout<<bin_weight;
+    return bin_weight;
+
+    }
+
 
 
 
@@ -52,6 +78,8 @@ std::list<int> convert_to_binary(int dec){
 
 
 struct digitbox{
+
+
 
     int peek_x, peek_y, w, h, value;
 
