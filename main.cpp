@@ -71,13 +71,13 @@ struct minterm{
 
     int mt;
 
-    list<int> bin = convert_to_binary(mt);
+    std::list<int> bin = convert_to_binary(mt); //ne felejtsd hogy itt forditva kell majd kiolvasni a helyiértékek miatt!
 
     int bin_weight = bw_count(mt);
 
 };
 
-bool is_neighbour(vector<minterm> m1, vector<minterm> m2){
+bool is_neighbour(std::vector<minterm> m1, std::vector<minterm> m2){
 
     bool neighbour = false;
 
@@ -134,9 +134,17 @@ bool is_neighbour(vector<minterm> m1, vector<minterm> m2){
 }
 
 
+std::vector<minterm> make_new_implicant(std::vector<minterm> m1, std::vector<minterm> m2){
 
+    std::vector<minterm> m12;
 
+    if (is_neighbour(m1,m2)) m12 = m1.insert(m1.end(), m2.begin(), m2.end());
 
+    return m12;
+
+}
+
+vector<vector<int>> prime_implicants
 
 
 struct digitbox{
