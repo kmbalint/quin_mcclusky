@@ -158,15 +158,15 @@ struct digitbox{
 
     void draw(){
 
-        gout << move_to(peek_x,peek_y) << color(200,200,200) << box(w,h) << move(-w+2,-h+2) << color(150,150,150) << box(w-2,h-2);
+        gout << move_to(peek_x,peek_y) << color(20,20,20) << box(w,h) << move(-w+2,-h+2) << color(0,0,0) << box(w-2,h-2);
 
         if(focus_down) gout << color(255,165,0) << move_to(peek_x+2,peek_y+2) << box((w-4)/3,h-4);
         if(focus_up) gout << color(255,165,0) << move_to(peek_x+w-2,peek_y+2) << box(-(w-4)/3,h-4);
 
-        gout << color(0,0,0) << move_to(peek_x+10,peek_y+h/2+5) << text("<");
-        gout << color(0,0,0) << move_to(peek_x+w-20,peek_y+h/2+5) << text(">");
+        gout << color(40,40,40) << move_to(peek_x+10,peek_y+h/2+5) << text("<");
+        gout << color(40,40,40) << move_to(peek_x+w-20,peek_y+h/2+5) << text(">");
 
-        gout << color(0,0,0) << move_to(peek_x+w/2-3,peek_y+h/2+5) << text(convertToString(value));
+        gout << color(40,40,40) << move_to(peek_x+35,peek_y+18) << text(convertToString(value));
     }
 
     void setFocus(int ex, int ey) {
@@ -195,89 +195,191 @@ struct block {
 
     int peek_x, peek_y, value, w, h;
 
-    block ( int _peek_x, int _peek_y, int _value) : peek_x(_peek_x),peek_y(_peek_y),value(_value),w(25),h(25) {}
+    bool focus, active;
 
-    int getX() {return peek_x;}
-    int getY() {return peek_y;}
+    block ( int _peek_x, int _peek_y, int _value, int _w, int _h) : peek_x(_peek_x),peek_y(_peek_y),value(_value),w(_w),h(_h),focus(false),active(false) {}
+
+    int getW() const {return w;}
+    int getH() const {return h;}
 
     void draw() {
-        gout << move_to(peek_x+1,peek_y+1) << color(150,150,150) << box(w-2,h-2) << move_to(peek_x,peek_y+22) << color(0,0,0) << text(convertToString(value));
+
+        if(focus) gout << color(155,65,0);
+        else if(active) gout << color(255,165,0);
+        else gout << color(0,0,0);
+
+
+        gout << move_to(peek_x+w*25+1,peek_y+h*25+1) << box(23,23) << move_to(peek_x+w*25+1,peek_y+h*25+18) << color(40,40,40) << text(convertToString(value));
     }
+
+    void setFocus(int ex, int ey) {
+
+        if( peek_x+w*25+1 < ex && peek_x+w*25+24 > ex && peek_y+h*25+1 < ey && peek_y+h*25+24 > ey) focus=true;
+        else focus = false;
+
+    }
+
+    void activate() {
+        if(focus) active = true;
+        else active = false;
+    }
+
+    bool isActive() {return active;}
 
 };
-
-std::vector<block *> mirror(std::vector<block *> b, bool right, int x, int y, int w, int h) {
-
-    std::vector<block *> ret = b;
-
-    for(size_t i = 0; i < b.size(); i++) {
-        if(right) ret.push_back(new block(2*x+w-b[i]->getX()-25,b[i]->getY(),i+b.size()));
-        else ret.push_back(new block(b[i]->getX(),2*y+h-b[i]->getY()-25,i+b.size()));
-    }
-
-    return ret;
-
-}
-
-std::vector<block *> split(std::vector<block *> b) {
-
-    std::vector<block *> ret;
-
-    for(size_t i = 0; i < b.size(); i++) {
-        if( i < b.size()/2 ) ret.push_back(b[i]);
-        else delete b[i];
-    }
-
-    return ret;
-}
 
 struct table {
 
     int peek_x, peek_y, input, w, h;
 
+    std::string inputs = "#ABCDEFGHI";
     std::vector<block *> blocks;
+    std::vector< std::vector<int> > sign_ver;
+    std::vector< std::vector<int> > sign_hor;
 
-    table ( int _peek_x, int _peek_y) : peek_x(_peek_x),peek_y(_peek_y),input(0){
+    table ( int _peek_x, int _peek_y ) : peek_x(_peek_x),peek_y(_peek_y),input(0){
         update(input);
     }
-
     void draw() {
         if(input!=0) {
-            gout << move_to(peek_x-1,peek_y-1) << color(200,200,200) << box(w+2,h+2);
-            for(size_t i = 0; i < blocks.size(); i++) blocks[i]->draw();
+            gout << move_to(peek_x,peek_y) << color(20,20,20) << box(w*25,h*25);
+
+            for(size_t i = 0; i < blocks.size(); i++)
+            blocks[i]->draw();
+
+            int index = -1;
+            for(size_t i = 0; i < blocks.size(); i++)
+                if(blocks[i]->isActive()) {
+                    index = i;
+                    break;
+                }
+
+
+            for(size_t i = 0; i < sign_ver.size(); i++){
+                for(size_t j = 0; j < sign_ver[i].size(); j++){
+                    if(sign_ver[i][j] != 0) {
+                        if(index > -1 && i == blocks[index]->getH()) gout << move_to(peek_x-j*25,peek_y+i*25) << color(20,20,20) << box(25,25) << move_to(peek_x-j*25,peek_y+i*25+1) << color(0,0,0) << box(25,24) << move_to(peek_x-j*25+1,peek_y+i*25+1) << color(255,165,0) << box(23,23) << move_to(peek_x-j*25+8,peek_y+i*25+18) << color(40,40,40) << text(inputs[sign_ver[i][j]]);
+                        else gout << move_to(peek_x-j*25,peek_y+i*25) << color(20,20,20) << box(25,25) << move_to(peek_x-j*25,peek_y+i*25+1) << color(0,0,0) << box(25,24) << move_to(peek_x-j*25+8,peek_y+i*25+18) << color(40,40,40) << text(inputs[sign_ver[i][j]]);
+                    }
+                }
+            }
+            for(size_t i = 0; i < sign_hor.size(); i++){
+                for(size_t j = 0; j < sign_hor[i].size(); j++){
+                    if(sign_hor[i][j] != 0) {
+                        if(index > -1 && i == blocks[index]->getW()) gout << move_to(peek_x+i*25,peek_y-(j+1)*25) << color(20,20,20) << box(25,25) << move_to(peek_x+i*25+1,peek_y-(j+1)*25) << color(0,0,0) << box(24,25) << move_to(peek_x+i*25+1,peek_y-(j+1)*25+1) << color(255,165,0) << box(23,23) << move_to(peek_x+i*25+8,peek_y-(j+1)*25+18) << color(40,40,40) << text(inputs[sign_hor[i][j]]);
+                        else gout << move_to(peek_x+i*25,peek_y-(j+1)*25) << color(20,20,20) << box(25,25) << move_to(peek_x+i*25+1,peek_y-(j+1)*25) << color(0,0,0) << box(24,25) << move_to(peek_x+i*25+8,peek_y-(j+1)*25+18) << color(40,40,40) << text(inputs[sign_hor[i][j]]);
+                    }
+                }
+            }
         }
     }
-
-    void update( int in ) {
+        void update( int in ) {
 
         if(in == 0) {
             w=0;
             h=0;
         }
         else {
-            w=pow(2,(in+1)/2)*25;
-            h=pow(2,in/2)*25;
+            w=pow(2,(in+1)/2);
+            h=pow(2,in/2);
         }
 
         while(input > in) {
             input--;
-            if(input == 0) {
-                blocks.clear();
-            }
-            else blocks = split(blocks);
+            if(input == 0) blocks.clear();
+            else split();
         }
 
         while(input < in) {
             input++;
             if(input == 1) {
-                blocks.push_back(new block(peek_x,peek_y,0));
-                blocks.push_back(new block(peek_x+25,peek_y,1));
+                blocks.push_back(new block(peek_x,peek_y,0,0,0));
+                blocks.push_back(new block(peek_x,peek_y,1,1,0));
             }
-            else if(input%2==0)blocks = mirror(blocks,false,peek_x,peek_y,w,h);
-            else if(input%2==1)blocks = mirror(blocks,true,peek_x,peek_y,w,h);
+            else if(input%2==0) mirror(false);
+            else if(input%2==1) mirror(true);
         }
 
-        std::cout << blocks.size() << std::endl;
+        signer();
+    }
+
+    void mirror(bool right) {
+
+        int s = blocks.size();
+        for(size_t i = 0; i < s; i++) {
+            if(right) blocks.push_back(new block(peek_x,peek_y,i+s,w-1-blocks[i]->getW(),blocks[i]->getH()));
+            else blocks.push_back(new block(peek_x,peek_y,i+s,blocks[i]->getW(),h-1-blocks[i]->getH()));
+        }
+    }
+
+    void signer() {
+
+        sign_ver.clear();
+        sign_hor.clear();
+
+        int k = 0;
+
+        while ( k < input) {
+
+            k++;
+
+            if(k == 1) {
+                std::vector<int> sign_help;
+
+                sign_help.push_back(0);
+
+                sign_ver.push_back(sign_help);
+                sign_hor.push_back(sign_help);
+
+                sign_help.clear();
+
+                sign_help.push_back(1);
+
+                sign_hor.push_back(sign_help);
+            }
+            else if(k%2==1) {
+                int s = sign_hor.size();
+                for(size_t i = 0; i < s; i++){
+                    sign_hor.push_back(sign_hor[s-1-i]);
+                }
+                for(size_t i = 0; i < sign_hor.size(); i++){
+                    if(i < sign_hor.size()/2 ) sign_hor[i].push_back(0);
+                    else sign_hor[i].push_back(k);
+                }
+            }
+            else if(k%2==0){
+                int s = sign_ver.size();
+                for(size_t i = 0; i < s; i++){
+                    sign_ver.push_back(sign_ver[s-1-i]);
+                }
+                for(size_t i = 0; i < sign_ver.size(); i++){
+                    if(i < sign_ver.size()/2 ) sign_ver[i].push_back(0);
+                    else sign_ver[i].push_back(k);
+                }
+            }
+        }
+    }
+
+    void split() {
+
+    int s = blocks.size();
+    for(size_t i = s; i > s/2; i--) {
+        block * b = blocks[i-1];
+        blocks.pop_back();
+        delete b;
+    }
+}
+
+    void setFocus(int ex, int ey) {
+        for(size_t i = 0; i < blocks.size(); i++) {
+            blocks[i]->setFocus(ex,ey);
+        }
+    }
+
+    void activate() {
+        for(size_t i = 0; i < blocks.size(); i++) {
+            blocks[i]->activate();
+        }
     }
 };
 
@@ -289,9 +391,9 @@ int main()
 
     event ev;
 
-    digitbox input(100,100);
+    digitbox input(200,20);
 
-    table T(100,200);
+    table T(200,200);
 
 
     std::vector<std::vector<int> > prime_implicants;
@@ -312,6 +414,9 @@ int main()
         if(ev.type == ev_mouse) {
 
             input.setFocus(ev.pos_x,ev.pos_y);
+
+            T.setFocus(ev.pos_x,ev.pos_y);
+
         }
 
         if(ev.button == btn_left) {
@@ -319,6 +424,8 @@ int main()
             input.activate();
 
             T.update(input.getValue());
+
+            T.activate();
 
         }
 
