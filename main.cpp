@@ -99,9 +99,9 @@ bool is_neighbour(std::vector<minterm> m1, std::vector<minterm> m2){
 
         mt2_sum = mt2_sum + m2[i].mt;
 
-        bin_diff = bin_diff + abs(m1[i].bin_weight - m2[i].bin_weight);
+        bin_diff = bin_diff + std::abs(m1[i].bin_weight - m2[i].bin_weight);
 
-        if (abs(m1[i].bin_weight - m2[i].bin_weight) != 1) is_bin_diff_one = false;
+        if (std::abs(m1[i].bin_weight - m2[i].bin_weight) != 1) is_bin_diff_one = false;
 
         int j = 0;
 
@@ -136,15 +136,15 @@ bool is_neighbour(std::vector<minterm> m1, std::vector<minterm> m2){
 
 std::vector<minterm> make_new_implicant(std::vector<minterm> m1, std::vector<minterm> m2){
 
-    std::vector<minterm> m12;
+    // std::vector<minterm> m12;
 
-    if (is_neighbour(m1,m2)) m12 = m1.insert(m1.end(), m2.begin(), m2.end());
+    if (is_neighbour(m1,m2)) m1.insert(m1.end(), m2.begin(), m2.end());
 
-    return m12;
+    return m1;
 
 }
 
-vector<vector<int>> prime_implicants
+std::vector<std::vector<int>> prime_implicants
 
 
 struct digitbox{
