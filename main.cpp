@@ -144,8 +144,6 @@ std::vector<minterm> make_new_implicant(std::vector<minterm> m1, std::vector<min
 
 }
 
-std::vector<std::vector<int>> prime_implicants
-
 
 struct digitbox{
 
@@ -189,34 +187,125 @@ struct digitbox{
         if( value > 9 ) value=9;
     }
 
+    int getValue() {return value;}
 
+};
 
+struct block {
 
+    int peek_x, peek_y, value, w, h;
 
+    block ( int _peek_x, int _peek_y, int _value) : peek_x(_peek_x),peek_y(_peek_y),value(_value),w(25),h(25) {}
+
+    int getX() {return peek_x;}
+    int getY() {return peek_y;}
+
+    void draw() {
+        gout << move_to(peek_x+1,peek_y+1) << color(150,150,150) << box(w-2,h-2) << move_to(peek_x,peek_y+22) << color(0,0,0) << text(convertToString(value));
+    }
+
+};
+
+std::vector<block *> mirror(std::vector<block *> b, bool right, int x, int y, int w, int h) {
+
+    std::vector<block *> ret = b;
+
+    for(size_t i = 0; i < b.size(); i++) {
+        if(right) ret.push_back(new block(2*x+w-b[i]->getX()-25,b[i]->getY(),i+b.size()));
+        else ret.push_back(new block(b[i]->getX(),2*y+h-b[i]->getY()-25,i+b.size()));
+    }
+
+    return ret;
+
+}
+
+std::vector<block *> split(std::vector<block *> b) {
+
+    std::vector<block *> ret;
+
+    for(size_t i = 0; i < b.size(); i++) {
+        if( i < b.size()/2 ) ret.push_back(b[i]);
+        else delete b[i];
+    }
+
+    return ret;
+}
+
+struct table {
+
+    int peek_x, peek_y, input, w, h;
+
+    std::vector<block *> blocks;
+
+    table ( int _peek_x, int _peek_y) : peek_x(_peek_x),peek_y(_peek_y),input(0){
+        update(input);
+    }
+
+    void draw() {
+        if(input!=0) {
+            gout << move_to(peek_x-1,peek_y-1) << color(200,200,200) << box(w+2,h+2);
+            for(size_t i = 0; i < blocks.size(); i++) blocks[i]->draw();
+        }
+    }
+
+    void update( int in ) {
+
+        if(in == 0) {
+            w=0;
+            h=0;
+        }
+        else {
+            w=pow(2,(in+1)/2)*25;
+            h=pow(2,in/2)*25;
+        }
+
+        while(input > in) {
+            input--;
+            if(input == 0) {
+                blocks.clear();
+            }
+            else blocks = split(blocks);
+        }
+
+        while(input < in) {
+            input++;
+            if(input == 1) {
+                blocks.push_back(new block(peek_x,peek_y,0));
+                blocks.push_back(new block(peek_x+25,peek_y,1));
+            }
+            else if(input%2==0)blocks = mirror(blocks,false,peek_x,peek_y,w,h);
+            else if(input%2==1)blocks = mirror(blocks,true,peek_x,peek_y,w,h);
+        }
+
+        std::cout << blocks.size() << std::endl;
+    }
 };
 
 
 int main()
 {
 
-    gout.open(800,800);
+    gout.open(1600,900);
 
     event ev;
 
-    digitbox input(200,200);
+    digitbox input(100,100);
+
+    table T(100,200);
 
 
-
-
+    std::vector<std::vector<int> > prime_implicants;
 
     gin.timer(20);
 
     while(gin >> ev) {
 
         if(ev.type == ev_timer) {
-            gout << move_to(0,0) << color(0,0,0) << box(800,800);
+            gout << move_to(0,0) << color(0,0,0) << box(1600,900);
 
             input.draw();
+
+            T.draw();
 
         }
 
@@ -228,6 +317,9 @@ int main()
         if(ev.button == btn_left) {
 
             input.activate();
+
+            T.update(input.getValue());
+
         }
 
 
