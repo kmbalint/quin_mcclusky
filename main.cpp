@@ -144,6 +144,21 @@ std::vector<minterm> make_new_implicant(std::vector<minterm> m1, std::vector<min
 
 }
 
+std::vector<std::vector<minterm>> old_implicants; //ebben lesznek eltárolva az eredeti inputok azon regiszterek decimális sorszámai melyek 1-esek az egyes mintermek avagy implikánsok is külön külön mégha csak egy tagúak akkor is vektorba vannak megadva
+
+std::vector<std::vector<minterm>> new_implicants; //ebbe pushbackeli majd a progi az uj implikánsokat amik szomszédosak
+
+void make_new_implicant_2(std::vector<std::vector<minterm>> old, std::vector<std::vector<minterm>> neew){
+
+
+    for(int k = 0; k < old.size(); k++){
+        for(int l = k+1; l < old[k].size()-k; l++){
+        neew.push_back(make_new_implicant(old[k],old[l]));
+        }
+    }
+
+}
+
 
 struct digitbox{
 
