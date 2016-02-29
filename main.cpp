@@ -160,7 +160,46 @@ void make_new_implicant_2(std::vector<std::vector<minterm>> old, std::vector<std
 }
 
 
-struct digitbox{
+struct part_input {
+
+    int p_x, p_y, in_n, id;
+
+    char name;
+
+    bool out, outneg;
+
+    part_input(int _p_x, int _p_y, int _in_n, char _name):p_x(_p_x),p_y(_p_y),in_n(_in_n),id(_in_n),name(_name),out(false),outneg(false){}
+
+    void draw() {
+
+        gout << move_to(p_x,p_y) << color(255,165,0) << box(25,25) << move_to(p_x+1,p_y+1) << color(0,0,0) << box(23,23) << move_to(p_x+8,p_y+16) << color(255,165,0) << text(name);
+
+        if(out) {
+
+            gout << move_to(p_x+25,p_y+3) << color(255,165,0) << box(40+(id*2-1)*6-4,2);
+
+            //wireminta
+            gout << move(-1,1) << color(155,65,0) << box(4,-4) << move(-1,4) << color(255,165,0) << box(-2,((in_n*6)+50)*(in_n-id)+70) << move(0,-((in_n*6)+50)*(in_n-id)-74) << box(2,-((in_n*6)+50)*id+60);
+
+        }
+        if(outneg) {
+
+            gout << move_to(p_x+3,p_y+25) << color(155,65,0) << box(2,in_n*6) << box(27,-2) << line(0,-15) << line(30,16) << line(0,1) << line(-30,15) << line(0,-16) << move(30,0) << box(5+id*2*6-4,2);
+
+            //wireminta
+            gout << move(-1,1) << color(255,165,0) << box(4,-4) << move(-1,4) << color(155,65,0) << box(-2,((in_n*6)+50)*(in_n-id)+10) << move(0,-((in_n*6)+50)*(in_n-id)-14) << box(2,-((in_n*6)+50)*id);
+        }
+
+
+    }
+
+    void addIn() {in_n++;p_y = p_y+(id-1)*6;}
+    void setOut(bool _out) {out = _out;}
+    void setOutNeg(bool _outneg) {outneg = _outneg;}
+
+};
+
+struct digitbox {
 
 
 
@@ -398,7 +437,33 @@ struct table {
     }
 };
 
+struct circuit {
 
+    int p_x, p_y;
+
+    std::string inputs = "ABCDEFGHI";
+    std::vector<part_input *> ins;
+
+    circuit(int _p_x, int _p_y):p_x(_p_x),p_y(_p_y) {}
+
+    void addInput() {
+
+        for(size_t i=0; i < ins.size(); i++) ins[i]->addIn();
+
+        part_input * pi = new part_input(p_x,p_y+ins.size()*(50+ins.size()*6),ins.size()+1,inputs[ins.size()]);
+
+        ins.push_back(pi);
+    }
+
+    void draw() {
+
+            for(size_t i=0; i < ins.size(); i++) ins[i]->draw();
+    }
+
+    void setOut(int _id) {for(size_t i=0; i < ins.size(); i++) if(ins[i]->id == _id) ins[i]->setOut(true);}
+    void setOutNeg(int _id) {for(size_t i=0; i < ins.size(); i++) if(ins[i]->id == _id) ins[i]->setOutNeg(true);}
+
+};
 int main()
 {
 
@@ -406,9 +471,29 @@ int main()
 
     event ev;
 
-    digitbox input(200,20);
+    digitbox IN(200,20);
 
-    table T(200,200);
+    table TA(150,200);
+
+    circuit CI(1000,200);
+    CI.addInput();
+    CI.addInput();
+    CI.addInput();
+    CI.addInput();
+    CI.addInput();
+    CI.addInput();
+    CI.setOut(1);
+    CI.setOut(2);
+    CI.setOut(3);
+    CI.setOut(4);
+    CI.setOut(5);
+    CI.setOut(6);
+    CI.setOutNeg(1);
+    CI.setOutNeg(2);
+    CI.setOutNeg(3);
+    CI.setOutNeg(4);
+    CI.setOutNeg(5);
+    CI.setOutNeg(6);
 
 
     std::vector<std::vector<int> > prime_implicants;
@@ -420,27 +505,29 @@ int main()
         if(ev.type == ev_timer) {
             gout << move_to(0,0) << color(0,0,0) << box(1600,900);
 
-            input.draw();
+            IN.draw();
 
-            T.draw();
+            TA.draw();
+
+            CI.draw();
 
         }
 
         if(ev.type == ev_mouse) {
 
-            input.setFocus(ev.pos_x,ev.pos_y);
+            IN.setFocus(ev.pos_x,ev.pos_y);
 
-            T.setFocus(ev.pos_x,ev.pos_y);
+            TA.setFocus(ev.pos_x,ev.pos_y);
 
         }
 
         if(ev.button == btn_left) {
 
-            input.activate();
+            IN.activate();
 
-            T.update(input.getValue());
+            TA.update(IN.getValue());
 
-            T.activate();
+            TA.activate();
 
         }
 
