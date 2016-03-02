@@ -9,7 +9,31 @@
 
 using namespace genv;
 
-std::string convertToString(int i) {
+const int X = 1600;
+const int Y = 900;
+
+std::list<int> convertIntToBinary(int dec) {
+
+    std::list<int> bin;
+
+    int b = dec % 2;
+
+    bin.push_front(b);
+
+    while(dec > 1){
+
+        dec = (dec-b)/2;
+
+        b = dec % 2;
+
+        bin.push_front(b);
+
+    }
+
+    return bin;
+}
+
+std::string convertIntToString(int i) {
     std::stringstream ss;
     std::string s;
 
@@ -20,6 +44,104 @@ std::string convertToString(int i) {
 
     return s;
 }
+
+int convertStringToInt(std::string str) {
+    std::stringstream ss;
+    int i;
+
+    ss << str;
+    ss >> i;
+
+    ss.clear();
+
+    return i;
+}
+
+int getBinaryWeight(std::list<int> bin) {
+    int bin_weight = 0;
+
+    for (std::list<int>::iterator it = bin.begin(); it != bin.end(); it++) bin_weight += *it;
+
+    return bin_weight;
+}
+
+class base {
+
+protected:
+
+    int x,y,weight,height;
+
+    bool focus, active;
+
+    std::string value;
+
+public:
+
+    base(int _x, int _y, int _weight, int _height, std::string _value) : x(_x), y(_y), weight(_weight), height(_height), focus(false), active(false), value(_value) {}
+
+    base(int _x, int _y, int _weight, int _height, int value) : base(_x,_y,_weight,_height,convertIntToString(value)) {}
+
+    virtual void draw() {
+
+        if(x >= 0 && x < X && y >= 0 && y < Y){
+            setColor();
+            gout << move_to(x,y) << box(weight,height) << color(0,0,0) << move_to(x+1,y+1) << box(weight-2,height-2);
+            setColor();
+            gout << move_to(x+weight/2-5,y+height/2+5) << text(value);
+        }
+
+    }
+
+    virtual void setFocus(int _ex, int _ey) {
+
+        if(_ex >= x && _ey >= y && _ex < x+weight && _ey < y+height ) focus = true;
+        else focus = false;
+
+    }
+
+    virtual void setActive() = 0;
+
+    virtual void setColor() {
+
+        if(focus) gout << color(155,65,0);
+        else if(active) gout << color(255,165,0);
+        else gout << color(100,100,100);
+
+    }
+};
+
+//class textbox : public base {};
+
+//class writebox : public base {};
+
+//class digitbox : public base {};
+
+//class button : public base {};
+
+//class block : public base {};
+
+//class table {};
+
+
+class part {};
+
+//class input : public part {};
+
+class wire : public part {};
+
+class andgate : public part {};
+
+class orgate : public part {};
+
+//class circuit {};
+
+
+
+
+/*
+
+
+
 
 std::list<int> convert_to_binary(int dec){
 
@@ -144,11 +266,11 @@ std::vector<minterm> make_new_implicant(std::vector<minterm> m1, std::vector<min
 
 }
 
-std::vector<std::vector<minterm>> old_implicants; //ebben lesznek eltárolva az eredeti inputok azon regiszterek decimális sorszámai melyek 1-esek az egyes mintermek avagy implikánsok is külön külön mégha csak egy tagúak akkor is vektorba vannak megadva
+std::vector<std::vector<minterm> > old_implicants; //ebben lesznek eltárolva az eredeti inputok azon regiszterek decimális sorszámai melyek 1-esek az egyes mintermek avagy implikánsok is külön külön mégha csak egy tagúak akkor is vektorba vannak megadva
 
-std::vector<std::vector<minterm>> new_implicants; //ebbe pushbackeli majd a progi az uj implikánsokat amik szomszédosak
+std::vector<std::vector<minterm> > new_implicants; //ebbe pushbackeli majd a progi az uj implikánsokat amik szomszédosak
 
-void make_new_implicant_2(std::vector<std::vector<minterm>> old, std::vector<std::vector<minterm>> neew){
+void make_new_implicant_2(std::vector<std::vector<minterm> > old, std::vector<std::vector<minterm> > neew){
 
 
     for(int k = 0; k < old.size(); k++){
@@ -158,9 +280,9 @@ void make_new_implicant_2(std::vector<std::vector<minterm>> old, std::vector<std
     }
 
 }
+*/
 
-
-struct part_input {
+struct input {
 
     int p_x, p_y, in_n, id;
 
@@ -168,7 +290,7 @@ struct part_input {
 
     bool out, outneg;
 
-    part_input(int _p_x, int _p_y, int _in_n, char _name):p_x(_p_x),p_y(_p_y),in_n(_in_n),id(_in_n),name(_name),out(false),outneg(false){}
+    input(int _p_x, int _p_y, int _in_n, char _name):p_x(_p_x),p_y(_p_y),in_n(_in_n),id(_in_n),name(_name),out(false),outneg(false){}
 
     void draw() {
 
@@ -220,7 +342,7 @@ struct digitbox {
         gout << color(40,40,40) << move_to(peek_x+10,peek_y+h/2+5) << text("<");
         gout << color(40,40,40) << move_to(peek_x+w-20,peek_y+h/2+5) << text(">");
 
-        gout << color(40,40,40) << move_to(peek_x+35,peek_y+18) << text(convertToString(value));
+        gout << color(40,40,40) << move_to(peek_x+35,peek_y+18) << text(convertIntToString(value));
     }
 
     void setFocus(int ex, int ey) {
@@ -263,7 +385,7 @@ struct block {
         else gout << color(0,0,0);
 
 
-        gout << move_to(peek_x+w*25+1,peek_y+h*25+1) << box(23,23) << move_to(peek_x+w*25+1,peek_y+h*25+18) << color(40,40,40) << text(convertToString(value));
+        gout << move_to(peek_x+w*25+1,peek_y+h*25+1) << box(23,23) << move_to(peek_x+w*25+1,peek_y+h*25+18) << color(40,40,40) << text(convertIntToString(value));
     }
 
     void setFocus(int ex, int ey) {
@@ -437,23 +559,32 @@ struct table {
     }
 };
 
+
 struct circuit {
 
-    int p_x, p_y;
+    int x, y;
 
-    std::string inputs = "ABCDEFGHI";
-    std::vector<part_input *> ins;
+    std::string input_name_string;
 
-    circuit(int _p_x, int _p_y):p_x(_p_x),p_y(_p_y) {}
+    std::vector<input *> ins;
+    std::vector<wire *> wis;
+    std::vector<andgate *> ags;
+    std::vector<orgate *> ogs;
 
+    circuit(int _x, int _y, std::string _input_name_string):x(_x),y(_y),input_name_string(_input_name_string) {}
+
+    void addAndGate() {}
+    void addOrGate() {}
     void addInput() {
 
         for(size_t i=0; i < ins.size(); i++) ins[i]->addIn();
 
-        part_input * pi = new part_input(p_x,p_y+ins.size()*(50+ins.size()*6),ins.size()+1,inputs[ins.size()]);
+        input * pi = new input(x,y+ins.size()*(50+ins.size()*6),ins.size()+1,input_name_string[ins.size()]);
 
         ins.push_back(pi);
     }
+
+    void setUp() {}
 
     void draw() {
 
@@ -464,6 +595,8 @@ struct circuit {
     void setOutNeg(int _id) {for(size_t i=0; i < ins.size(); i++) if(ins[i]->id == _id) ins[i]->setOutNeg(true);}
 
 };
+
+
 int main()
 {
 
@@ -475,7 +608,7 @@ int main()
 
     table TA(150,200);
 
-    circuit CI(1000,200);
+    circuit CI(1000,200,"ABCDEFGHI");
     CI.addInput();
     CI.addInput();
     CI.addInput();
@@ -494,7 +627,6 @@ int main()
     CI.setOutNeg(4);
     CI.setOutNeg(5);
     CI.setOutNeg(6);
-
 
     std::vector<std::vector<int> > prime_implicants;
 
@@ -529,10 +661,11 @@ int main()
 
             TA.activate();
 
+
         }
 
 
         gout << refresh;
     }
     return 0;
-}
+};
