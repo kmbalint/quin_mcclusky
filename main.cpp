@@ -168,20 +168,13 @@ std::list<int> convert_to_binary(int dec){
 
     }
 
-int bw_count(int dec){
+int bw_count(std::list<int> bin){
 
     int bin_weight = 0;
 
-    int b = dec % 2;
+    for (std::list<int>::iterator it = bin.begin(); it != bin.end(); it++){
+    if(*it == 1) bin_weight++; }
 
-    while(dec > 0){
-
-        bin_weight = bin_weight + b;
-
-        dec = (dec-b)/2;
-
-        b = dec % 2;
-    }
 
     std::cout<<bin_weight;
     return bin_weight;
@@ -195,7 +188,7 @@ struct minterm{
 
     std::list<int> bin = convert_to_binary(mt); //ne felejtsd hogy itt forditva kell majd kiolvasni a helyiértékek miatt!
 
-    int bin_weight = bw_count(mt);
+    int bin_weight = bw_count(convert_to_binary(mt));
 
 };
 
@@ -230,7 +223,7 @@ bool is_neighbour(std::vector<minterm> m1, std::vector<minterm> m2){
         while(j < m2.size()){
 
             if ((m1[i].mt > m2[j].mt && m1[i].bin_weight > m2[i].bin_weight) || (m1[i].mt < m2[j].mt && m1[i].bin_weight < m2[i].bin_weight)) is_higher_than = false;
-
+            j++;
         }
 
         i++;
@@ -334,15 +327,20 @@ struct digitbox {
 
     void draw(){
 
-        gout << move_to(peek_x,peek_y) << color(20,20,20) << box(w,h) << move(-w+2,-h+2) << color(0,0,0) << box(w-2,h-2);
+        gout << move_to(peek_x,peek_y) << color(100,100,100) << box(w,h) << move(-w+2,-h+2) << color(0,0,0) << box(w-2,h-2);
 
-        if(focus_down) gout << color(255,165,0) << move_to(peek_x+2,peek_y+2) << box((w-4)/3,h-4);
-        if(focus_up) gout << color(255,165,0) << move_to(peek_x+w-2,peek_y+2) << box(-(w-4)/3,h-4);
+        if(focus_down) gout << color(255,165,0) << move_to(peek_x+2,peek_y+2) << box((w-4)/3,h-4) << color(40,40,40);
+        else gout << color(180,180,180);
+        gout << move_to(peek_x+10,peek_y+h/2+5) << text("<");
+        if(focus_up) gout << color(255,165,0) << move_to(peek_x+w-2,peek_y+2) << box(-(w-4)/3,h-4) << color(40,40,40);
+        else gout << color(180,180,180);
+        gout << move_to(peek_x+w-20,peek_y+h/2+5) << text(">");
 
-        gout << color(40,40,40) << move_to(peek_x+10,peek_y+h/2+5) << text("<");
-        gout << color(40,40,40) << move_to(peek_x+w-20,peek_y+h/2+5) << text(">");
-
+<<<<<<< HEAD
         gout << color(40,40,40) << move_to(peek_x+35,peek_y+18) << text(convertIntToString(value));
+=======
+        gout << color(180,180,180) << move_to(peek_x+35,peek_y+18) << text(convertToString(value));
+>>>>>>> origin/master
     }
 
     void setFocus(int ex, int ey) {
@@ -371,22 +369,27 @@ struct block {
 
     int peek_x, peek_y, value, w, h;
 
-    bool focus, active;
+    bool focus, active, mint;
 
-    block ( int _peek_x, int _peek_y, int _value, int _w, int _h) : peek_x(_peek_x),peek_y(_peek_y),value(_value),w(_w),h(_h),focus(false),active(false) {}
+    block ( int _peek_x, int _peek_y, int _value, int _w, int _h) : peek_x(_peek_x),peek_y(_peek_y),value(_value),w(_w),h(_h),focus(false),active(false),mint(false) {}
 
     int getW() const {return w;}
     int getH() const {return h;}
 
     void draw() {
 
-        if(focus) gout << color(155,65,0);
-        else if(active) gout << color(255,165,0);
-        else gout << color(0,0,0);
+        if(focus) gout << color(155,65,0) << move_to(peek_x+w*25+1,peek_y+h*25+1) << box(23,23) << move_to(peek_x+w*25+1,peek_y+h*25+18) << color(40,40,40) << text(convertToString(value));
 
+        else if(active) gout << color(255,165,0) << move_to(peek_x+w*25+1,peek_y+h*25+1) << box(23,23) << move_to(peek_x+w*25+1,peek_y+h*25+18) << color(40,40,40) << text(convertToString(value));
 
+<<<<<<< HEAD
         gout << move_to(peek_x+w*25+1,peek_y+h*25+1) << box(23,23) << move_to(peek_x+w*25+1,peek_y+h*25+18) << color(40,40,40) << text(convertIntToString(value));
     }
+=======
+        else gout << color(0,0,0) << move_to(peek_x+w*25+1,peek_y+h*25+1) << box(23,23) << move_to(peek_x+w*25+1,peek_y+h*25+18) << color(180,180,180) << text(convertToString(value));
+
+        }
+>>>>>>> origin/master
 
     void setFocus(int ex, int ey) {
 
@@ -401,6 +404,10 @@ struct block {
     }
 
     bool isActive() {return active;}
+
+    std::list<int> getBinary() { return convert_to_binary(value);}
+
+    int getBinWeight(){return bw_count(getBinary());}
 
 };
 
@@ -418,7 +425,7 @@ struct table {
     }
     void draw() {
         if(input!=0) {
-            gout << move_to(peek_x,peek_y) << color(20,20,20) << box(w*25,h*25);
+            gout << move_to(peek_x,peek_y) << color(100,100,100) << box(w*25,h*25);
 
             for(size_t i = 0; i < blocks.size(); i++)
             blocks[i]->draw();
@@ -435,7 +442,7 @@ struct table {
                 for(size_t j = 0; j < sign_ver[i].size(); j++){
                     if(sign_ver[i][j] != 0) {
                         if(index > -1 && i == blocks[index]->getH()) gout << move_to(peek_x-j*25,peek_y+i*25) << color(20,20,20) << box(25,25) << move_to(peek_x-j*25,peek_y+i*25+1) << color(0,0,0) << box(25,24) << move_to(peek_x-j*25+1,peek_y+i*25+1) << color(255,165,0) << box(23,23) << move_to(peek_x-j*25+8,peek_y+i*25+18) << color(40,40,40) << text(inputs[sign_ver[i][j]]);
-                        else gout << move_to(peek_x-j*25,peek_y+i*25) << color(20,20,20) << box(25,25) << move_to(peek_x-j*25,peek_y+i*25+1) << color(0,0,0) << box(25,24) << move_to(peek_x-j*25+8,peek_y+i*25+18) << color(40,40,40) << text(inputs[sign_ver[i][j]]);
+                        else gout << move_to(peek_x-j*25,peek_y+i*25) << color(100,100,100) << box(25,25) << move_to(peek_x-j*25,peek_y+i*25+1) << color(0,0,0) << box(25,24) << move_to(peek_x-j*25+8,peek_y+i*25+18) << color(180,180,180) << text(inputs[sign_ver[i][j]]);
                     }
                 }
             }
@@ -443,7 +450,7 @@ struct table {
                 for(size_t j = 0; j < sign_hor[i].size(); j++){
                     if(sign_hor[i][j] != 0) {
                         if(index > -1 && i == blocks[index]->getW()) gout << move_to(peek_x+i*25,peek_y-(j+1)*25) << color(20,20,20) << box(25,25) << move_to(peek_x+i*25+1,peek_y-(j+1)*25) << color(0,0,0) << box(24,25) << move_to(peek_x+i*25+1,peek_y-(j+1)*25+1) << color(255,165,0) << box(23,23) << move_to(peek_x+i*25+8,peek_y-(j+1)*25+18) << color(40,40,40) << text(inputs[sign_hor[i][j]]);
-                        else gout << move_to(peek_x+i*25,peek_y-(j+1)*25) << color(20,20,20) << box(25,25) << move_to(peek_x+i*25+1,peek_y-(j+1)*25) << color(0,0,0) << box(24,25) << move_to(peek_x+i*25+8,peek_y-(j+1)*25+18) << color(40,40,40) << text(inputs[sign_hor[i][j]]);
+                        else gout << move_to(peek_x+i*25,peek_y-(j+1)*25) << color(100,100,100) << box(25,25) << move_to(peek_x+i*25+1,peek_y-(j+1)*25) << color(0,0,0) << box(24,25) << move_to(peek_x+i*25+8,peek_y-(j+1)*25+18) << color(180,180,180) << text(inputs[sign_hor[i][j]]);
                     }
                 }
             }
@@ -599,6 +606,7 @@ struct circuit {
 
 int main()
 {
+
 
     gout.open(1600,900);
 
