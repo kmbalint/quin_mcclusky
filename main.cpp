@@ -65,6 +65,13 @@ int getBinaryWeight(std::list<int> bin) {
     return bin_weight;
 }
 
+int getCharPos(char c, std::string s) {
+    for(size_t i = 0; i < s.size(); i++) {
+        if(s[i] == c) return i;
+    }
+    return -1;
+}
+
 class base {
 
 protected:
@@ -79,8 +86,8 @@ public:
 
     base(int _x, int _y, int _weight, int _height, std::string _value) : x(_x), y(_y), weight(_weight), height(_height), focus(false), active(false), value(_value) {
 
-        if(weight < 25) weight = 25;
-        if(height < 25) height = 25;
+        //if(weight < 25) weight = 25;
+        //if(height < 25) height = 25;
 
     }
 
@@ -498,8 +505,6 @@ public:
 
         if(x >= 0 && x < X && y >= 0 && y < Y){
 
-            setColor();
-
             gout << move_to(x+2,y+2) << box(2,2);
 
             if(N) gout << move_to(x+2,y) << box(2,2);
@@ -507,8 +512,9 @@ public:
             if(S) gout << move_to(x+2,y+4) << box(2,2);
             if(E) gout << move_to(x+4,y+2) << box(2,2);
         }
-
     }
+
+    virtual void setActive() {}
 
     void setNorth(bool on) {N = on;}
 
@@ -517,33 +523,123 @@ public:
     void setSouth(bool on) {S = on;}
 
     void setEast(bool on) {E = on;}
+
+    int getX() {return x;}
+    int getY() {return y;}
 };
 
 class wire : public base {
 
 protected:
 
-
+    int length;
+    bool horizontal;
+    std::vector<part *> line;
 
 public:
 
-    //wire(int _x, int _y, int _weight, int _height, std::string _value)
+    wire(int _x, int _y, int _length, std::string _id) : base(_x,_y,6,_length*6,_id), length(_length), horizontal(false)  {
 
+        if(horizontal) for(int i = 0; i < length; i++) line.push_back(new part(x+i*6,y,_id,false,i!=0,false,i!=(length-1)));
+        else for(int i = 0; i < length; i++) line.push_back(new part(x,y+i*6,_id,i!=0,false,i!=(length-1),false));
+    }
 
+    virtual void draw () {
+        setColor();
+        for(size_t i = 0; i < line.size(); i++) line[i]->draw();
+    }
+
+    virtual void setActive () {
+        if(focus) active = true;
+        else active = false;
+    }
 };
 
-//class input : public part {};
+class input : public base {
+
+protected:
+
+    bool out, outneg;
+
+public:
+
+    input(int _x, int _y, std::string _name) : base(_x,_y,30,30,_name), out(false), outneg(false){}
+
+    virtual void draw() {
+
+        if(x >= 0 && x < X && y >= 0 && y < Y){
+            setColor();
+            gout << move_to(x,y) << box(weight,height) << color(0,0,0) << move_to(x+1,y+1) << box(weight-2,height-2);
+            setColor();
+            gout << move_to(x+5,y+height/2+5) << text(value);
+        }
+    }
+
+    virtual void setActive () {
+        if(focus) active = true;
+        else active = false;
+    }
+
+    void setOut(bool _out) {out = _out;}
+    void setOutNeg(bool _outneg) {outneg = _outneg;}
+};
 
 class andgate : public part {};
 
 class orgate : public part {};
 
-//class circuit {};
+class circuit {
+
+protected:
+
+    int x, y;
+
+    std::string input_name_string;
+
+    std::vector<input *> ins;
+    std::vector<wire *> wis;
+    std::vector<andgate *> ags;
+    std::vector<orgate *> ogs;
+
+public:
+
+    circuit(int _x, int _y, std::string _input_name_string):x(_x),y(_y),input_name_string(_input_name_string) {}
+
+    void addAndGate( std::string name ) { /*ags.push_back( new andgate());*/}
+    void addOrGate() {}
+    void addInput() { ins.push_back( new input(x,y+ins.size()*60,input_name_string.substr(ins.size(),1)));}
+
+    void setUp(std::string str) {
+        int pos = 0;
+        std::string s = str;
+        while(getCharPos('+',s) != -1) {
+            addAndGate(s.substr(pos,getCharPos('+',s)));
+            s = s.substr(getCharPos('+',s)+1);
+            pos = getCharPos('+',s)+1;
+        }
+        addAndGate(s);
+    }
+
+    void draw() {
+        for(size_t i=0; i < ins.size(); i++) ins[i]->draw();
+        for(size_t i=0; i < wis.size(); i++) wis[i]->draw();
+    }
+
+    void setOut(std::string _id) {for(size_t i=0; i < ins.size(); i++) if(ins[i]->getValue() == _id) ins[i]->setOut(true);}
+    void setOutNeg(std::string _id) {for(size_t i=0; i < ins.size(); i++) if(ins[i]->getValue() == _id) ins[i]->setOutNeg(true);}
+
+    void setEvent(event e) {
+
+        if(e.type == ev_timer) draw();
+
+        if(e.type == ev_mouse) for(size_t i=0; i < ins.size(); i++) ins[i]->setFocus(e.pos_x,e.pos_y);
+
+        if(e.button == btn_left) for(size_t i=0; i < ins.size(); i++) ins[i]->setActive();
+    };
+};
 
 
 
-
-/*
 std::list<int> convert_to_binary(int dec){
 
     std::list<int> bin;
@@ -674,87 +770,9 @@ void make_new_implicant_2(std::vector<std::vector<minterm> > old, std::vector<st
     }
 
 }
-*/
-
-struct input {
-
-    int p_x, p_y, in_n, id;
-
-    char name;
-
-    bool out, outneg;
-
-    input(int _p_x, int _p_y, int _in_n, char _name):p_x(_p_x),p_y(_p_y),in_n(_in_n),id(_in_n),name(_name),out(false),outneg(false){}
-
-    void draw() {
-
-        gout << move_to(p_x,p_y) << color(255,165,0) << box(25,25) << move_to(p_x+1,p_y+1) << color(0,0,0) << box(23,23) << move_to(p_x+8,p_y+16) << color(255,165,0) << text(name);
-
-        if(out) {
-
-            gout << move_to(p_x+25,p_y+3) << color(255,165,0) << box(40+(id*2-1)*6-4,2);
-
-            //wireminta
-            gout << move(-1,1) << color(155,65,0) << box(4,-4) << move(-1,4) << color(255,165,0) << box(-2,((in_n*6)+50)*(in_n-id)+70) << move(0,-((in_n*6)+50)*(in_n-id)-74) << box(2,-((in_n*6)+50)*id+60);
-
-        }
-        if(outneg) {
-
-            gout << move_to(p_x+3,p_y+25) << color(155,65,0) << box(2,in_n*6) << box(27,-2) << line(0,-15) << line(30,16) << line(0,1) << line(-30,15) << line(0,-16) << move(30,0) << box(5+id*2*6-4,2);
-
-            //wireminta
-            gout << move(-1,1) << color(255,165,0) << box(4,-4) << move(-1,4) << color(155,65,0) << box(-2,((in_n*6)+50)*(in_n-id)+10) << move(0,-((in_n*6)+50)*(in_n-id)-14) << box(2,-((in_n*6)+50)*id);
-        }
-
-
-    }
-
-    void addIn() {in_n++;p_y = p_y+(id-1)*6;}
-    void setOut(bool _out) {out = _out;}
-    void setOutNeg(bool _outneg) {outneg = _outneg;}
-
-};
-
-struct circuit {
-
-    int x, y;
-
-    std::string input_name_string;
-
-    std::vector<input *> ins;
-    std::vector<wire *> wis;
-    std::vector<andgate *> ags;
-    std::vector<orgate *> ogs;
-
-    circuit(int _x, int _y, std::string _input_name_string):x(_x),y(_y),input_name_string(_input_name_string) {}
-
-    void addAndGate() {}
-    void addOrGate() {}
-    void addInput() {
-
-        for(size_t i=0; i < ins.size(); i++) ins[i]->addIn();
-
-        input * pi = new input(x,y+ins.size()*(50+ins.size()*6),ins.size()+1,input_name_string[ins.size()]);
-
-        ins.push_back(pi);
-    }
-
-    void setUp() {}
-
-    void draw() {
-
-            for(size_t i=0; i < ins.size(); i++) ins[i]->draw();
-    }
-
-    void setOut(int _id) {for(size_t i=0; i < ins.size(); i++) if(ins[i]->id == _id) ins[i]->setOut(true);}
-    void setOutNeg(int _id) {for(size_t i=0; i < ins.size(); i++) if(ins[i]->id == _id) ins[i]->setOutNeg(true);}
-
-};
 
 int main()
 {
-
-
     gout.open(1600,900);
 
     event ev;
@@ -766,29 +784,7 @@ int main()
 
     table T(200,300,30);
 
-/*
-    circuit CI(1000,200,"ABCDEFGHI");
-    CI.addInput();
-    CI.addInput();
-    CI.addInput();
-    CI.addInput();
-    CI.addInput();
-    CI.addInput();
-    CI.setOut(1);
-    CI.setOut(2);
-    CI.setOut(3);
-    CI.setOut(4);
-    CI.setOut(5);
-    CI.setOut(6);
-    CI.setOutNeg(1);
-    CI.setOutNeg(2);
-    CI.setOutNeg(3);
-    CI.setOutNeg(4);
-    CI.setOutNeg(5);
-    CI.setOutNeg(6);
-
-    std::vector<std::vector<int> > prime_implicants;
-*/
+    //std::vector<std::vector<int> > prime_implicants;
 
     gin.timer(20);
 
@@ -802,8 +798,6 @@ int main()
         DB01->setEvent(ev);
 
         T.setEvent(ev,convertStringToInt(DB01->getValue()));
-
-
 
         gout << refresh;
 
