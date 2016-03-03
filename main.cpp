@@ -108,8 +108,6 @@ public:
 
     }
 
-    virtual void setActive() = 0;
-
     virtual void setColor() {
 
         if(focus) gout << color(155,65,0);
@@ -128,6 +126,7 @@ public:
 
     };
 
+    virtual void setActive() = 0;
 };
 
 class textbox : public base {
@@ -483,12 +482,57 @@ public:
     }
 };
 
+class part : public base {
 
-class part {};
+protected:
+
+    bool N,W,S,E;
+
+public:
+
+    part(int _x, int _y, std::string _value, bool _N, bool _W, bool _S, bool _E) : base(_x,_y,6,6,_value), N(_N), W(_W), S(_S), E(_E) {}
+
+    part(int _x, int _y, std::string _value) : part(_x,_y,_value,false,false,false,false) {}
+
+    virtual void draw() {
+
+        if(x >= 0 && x < X && y >= 0 && y < Y){
+
+            setColor();
+
+            gout << move_to(x+2,y+2) << box(2,2);
+
+            if(N) gout << move_to(x+2,y) << box(2,2);
+            if(W) gout << move_to(x,y+2) << box(2,2);
+            if(S) gout << move_to(x+2,y+4) << box(2,2);
+            if(E) gout << move_to(x+4,y+2) << box(2,2);
+        }
+
+    }
+
+    void setNorth(bool on) {N = on;}
+
+    void setWest(bool on) {W = on;}
+
+    void setSouth(bool on) {S = on;}
+
+    void setEast(bool on) {E = on;}
+};
+
+class wire : public base {
+
+protected:
+
+
+
+public:
+
+    //wire(int _x, int _y, int _weight, int _height, std::string _value)
+
+
+};
 
 //class input : public part {};
-
-class wire : public part {};
 
 class andgate : public part {};
 
