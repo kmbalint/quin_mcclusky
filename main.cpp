@@ -493,13 +493,14 @@ class part : public base {
 
 protected:
 
-    bool N,W,S,E;
+    int N,W,S,E;
+    bool node;
 
 public:
 
-    part(int _x, int _y, std::string _value, bool _N, bool _W, bool _S, bool _E) : base(_x,_y,6,6,_value), N(_N), W(_W), S(_S), E(_E) {}
+    part(int _x, int _y, std::string _value, int _N, int _W, int _S, int _E) : base(_x,_y,6,6,_value), N(_N), W(_W), S(_S), E(_E), node(false) {}
 
-    part(int _x, int _y, std::string _value) : part(_x,_y,_value,false,false,false,false) {}
+    part(int _x, int _y, std::string _value) : part(_x,_y,_value,0,0,0,0) {}
 
     virtual void draw() {
 
@@ -507,22 +508,35 @@ public:
 
             gout << move_to(x+2,y+2) << box(2,2);
 
-            if(N) gout << move_to(x+2,y) << box(2,2);
-            if(W) gout << move_to(x,y+2) << box(2,2);
-            if(S) gout << move_to(x+2,y+4) << box(2,2);
-            if(E) gout << move_to(x+4,y+2) << box(2,2);
+            if(N>0)gout << move_to(x+2,y+2) << box(2,-N);
+            if(W>0)gout << move_to(x+2,y+2) << box(-W,2);
+            if(S>0)gout << move_to(x+2,y+4) << box(2,S);
+            if(E>0)gout << move_to(x+4,y+2) << box(E,2);
+
+            if(node) {
+                if(focus) gout << color(255,165,0) << move_to(x+1,y+1) << box(4,4) << color(155,65,0);
+                else if(active) gout << color(255,200,0) << move_to(x+1,y+1) << box(4,4) << color(255,165,0);
+                else gout << color(200,200,200) << move_to(x+1,y+1) << box(4,4) << color(100,100,100);
+            }
+
         }
     }
 
-    virtual void setActive() {}
+    virtual void setActive() {
+        if(focus) active = true;
+        else active = false;
+    }
 
-    void setNorth(bool on) {N = on;}
+    void setNorth(int length) {N = length;}
+    void setWest(int length) {W = length;}
+    void setSouth(int length) {S = length;}
+    void setEast(int length) {E = length;}
 
-    void setWest(bool on) {W = on;}
+    void setNode(bool on) {node = on;}
 
-    void setSouth(bool on) {S = on;}
-
-    void setEast(bool on) {E = on;}
+    bool isIn() {return W > 0;}
+    bool isOut() {return E > 0;}
+    bool isNode() {return node;}
 
     int getX() {return x;}
     int getY() {return y;}
@@ -533,27 +547,51 @@ class wire : public base {
 protected:
 
     int length, first, last;
-    bool horizontal;
     std::vector<part *> line;
 
 public:
 
-    wire(int _x, int _y, int _length, int _first, bool _horizontal, std::string _id) : base(_x,_y,(_horizontal ? _length*6 : 6),(_horizontal ? 6 : _length*6),_id), length(_length), first(_first), last(_length), horizontal(_horizontal)  {
-
-        if(horizontal) for(int i = 0; i < length; i++) line.push_back(new part(x+i*6,y,_id,false,i!=first,false,i!=last));
-        else for(int i = 0; i < length; i++) line.push_back(new part(x,y+i*6,_id,i!=first,i==first,i!=last,false));
-
-        if(first < 0) first = length;
+    wire(int _x, int _y, int _length, std::string _id) : base(_x,_y,6,_length*6,_id), length(_length), first(0), last(length-1)  {
+        for(int i = 0; i < length; i++) line.push_back(new part(x,y+i*6,_id,3,0,3,0));
     }
 
     virtual void draw () {
-        setColor();
-        for(size_t i = first; i < last; i++) line[i]->draw();
+        for(size_t i = first; i < last+1; i++) {
+            setColor();
+            line[i]->draw();
+        }
     }
 
     virtual void setActive () {
-        if(focus) active = true;
-        else active = false;
+        for(size_t i = first; i < last+1; i++) line[i]->draw();
+    }
+
+    void setPartIn(int loc, int s) {
+        line[loc]->setWest(s);
+        line[loc]->setNode(true);
+    }
+    void setPartOut(int loc, int s) {
+        line[loc]->setEast(s);
+        line[loc]->setNode(true);
+    }
+    void setFirst() {
+        for(int i = 0; i < length; i++) {
+            if(line[i]->isIn() || line[i]->isOut()) {
+                first = i;
+                break;
+            }
+        }
+        line[first]->setNorth(0);
+        line[first]->setNode(false);
+    }
+    void setLast() {
+        for(int i = 0; i < length; i++) {
+            if(line[i]->isIn() || line[i]->isOut()) {
+                last = i;
+            }
+        }
+        line[last]->setSouth(0);
+        line[last]->setNode(false);
     }
 };
 
@@ -562,9 +600,6 @@ class input : public base {
 protected:
 
     bool out, outneg;
-
-    wire * outp;
-    wire * negoutp;
 
 public:
 
@@ -578,11 +613,8 @@ public:
             setColor();
             gout << move_to(x+5,y+height/2+5) << text(value);
 
-            if(out) gout << move_to(x+weight,y+8) << box(62,2);
-            if(outneg) gout << move_to(x+8,y+height) << box(2,10) << box(26,-2) << line(0,-15) << line(30,15) << line(0,2) << line(-30,15) << line(0,-15) << move(30,-1) << box(29,2);
+            if(outneg) gout << move_to(x+8,y+height) << box(2,16) << box(28,-2) << line(0,-15) << line(30,15) << move(-29,1) << line(0,15) << line(30,-15);
 
-            if(outp != NULL) outp->draw();
-            if(negoutp != NULL) negoutp->draw();
         }
     }
 
@@ -591,9 +623,6 @@ public:
         else active = false;
     }
 
-    void setWireOut(int loc) {outp = new wire(x+60+weight,y+6,loc,0,true,"1"+value);}
-    void setWireNegOut(int loc) {negoutp = new wire(x+60+weight,y+36,loc,0,true,"1"+value);}
-
     void setOut(bool _out) {out = _out;}
     void setOutNeg(bool _outneg) {outneg = _outneg;}
 
@@ -601,31 +630,74 @@ public:
     bool isOutNeg() {return outneg;}
 };
 
-class andgate : public part {};
+class andgate : public base {
 
-class orgate : public part {};
+protected:
+
+    int fp;
+    std::vector<std::string> ins;
+
+public:
+
+    andgate(int _x, int _y, int _part, std::string _in) : base(_x,_y,60,_in.length()*6+24,_in),fp(_part) {
+
+        int pos = 0;
+        while(pos < _in.size()-1) {
+            ins.push_back(_in.substr(pos,2));
+            pos += 2;
+        }
+    }
+
+    virtual void draw() {
+
+        setColor();
+        gout << move_to(x+12,y) << line(30,0) << line(12,(height-18)/2) << line(0,3) << line(-12,(height-18)/2) << line(-31,0) << line(0,-height+18);
+
+    }
+
+    virtual void setActive() {}
+
+    std::vector<std::string> getInputNames() {return ins;}
+
+    int getPart() {return fp;}
+
+};
+
+class orgate : public base {};
 
 class circuit {
 
 protected:
 
-    int x, y;
+    int x, y, partsize, alip;
 
     std::vector<input *> ins;
     std::vector<wire *> wis;
+    std::vector<wire *> wis2;
     std::vector<andgate *> ags;
-    std::vector<orgate *> ogs;
+
+    orgate * og;
 
 public:
 
-    circuit(int _x, int _y):x(_x),y(_y) {}
+    circuit(int _x, int _y):x(_x),y(_y),partsize(0),alip(1) {}
 
+    void addWire(std::string name) {
 
+        wis.push_back(new wire(x+90+wis.size()*6,y,partsize,name));
 
-    void addWire(std::string name, int loc) {wis.push_back(new wire(x+90+wis.size()*6,y,ins.size()*10,loc,false,name));}
-    void addAndGate(std::string name) {}
+    }
+
+    void addAndGate(std::string name) {
+        ags.push_back(new andgate(x+90+wis.size()*6,y+alip*6,alip+1,name));
+        alip += name.length()+4;
+
+    }
+
     void addOrGate() {}
+
     void addInput(std::string name, std::string type) {
+
         for(size_t i = 0; i < ins.size(); i++) {
             if(ins[i]->getValue() == name) {
                 if(type == "0") ins[i]->setOutNeg(true);
@@ -633,9 +705,20 @@ public:
                 return;
             }
         }
+
         ins.push_back( new input(x,y+ins.size()*60,name));
+        partsize += 10;
+
         if(type == "0") ins[ins.size()-1]->setOutNeg(true);
         if(type == "1") ins[ins.size()-1]->setOut(true);
+
+    }
+
+    int getWireFromName(std::string str) {
+        for(size_t i = 0; i < wis.size(); i++)
+            if(str == wis[i]->getValue()) return i;
+
+        return -1;
     }
 
     void setUp(std::string str) {
@@ -643,45 +726,69 @@ public:
         for(size_t i = 0; i < str.length(); i++)
             if(str[i] != '+' && str[i] != '1' && str[i] != '0') addInput(str.substr(i,1),str.substr(i-1,1));
 
-        int pos = 0;
-        std::string s = str;
-        while(getCharPos('+',s) != -1) {
-            addAndGate(s.substr(pos,getCharPos('+',s)));
-            s = s.substr(getCharPos('+',s)+1);
-            pos = getCharPos('+',s)+1;
+        for(size_t i = 0; i < ins.size(); i++) {
+            if(ins[i]->isOut()) {
+                addWire("1"+ins[i]->getValue());
+                wis[wis.size()-1]->setPartIn(i*10+1,wis.size()*6+58);
+            }
+            if(ins[i]->isOutNeg()) {
+                addWire("0"+ins[i]->getValue());
+                wis[wis.size()-1]->setPartIn(i*10+7,wis.size()*6+22);
+            }
         }
-        addAndGate(s);
+
+        int p = getCharPos('+',str);
+        while(p != -1) {
+            addAndGate(str.substr(0,p));
+            str = str.substr(p+1);
+            p = getCharPos('+',str);
+        }
+        addAndGate(str);
+
+        for(size_t i = 0; i < ags.size(); i++) {
+            std::vector<std::string> vs = ags[i]->getInputNames();
+            for(size_t j = 0; j < vs.size(); j++) {
+                wis[getWireFromName(vs[j])]->setPartOut(ags[i]->getPart()+j*2,(wis.size()-getWireFromName(vs[j]))*6+8);
+            }
+        }
 
         addOrGate();
 
-        for(size_t i = 0; i < ins.size(); i++) {
-            if(ins[i]->isOut()) {
-                addWire("1"+ins[i]->getValue(),i*10+1);
-                ins[i]->setWireOut(wis.size()-1);
-            }
-            if(ins[i]->isOutNeg()) {
-                addWire("0"+ins[i]->getValue(),i*10+6);
-                ins[i]->setWireNegOut(wis.size()-1);
-            }
+        for(size_t i = 0; i < wis.size(); i++) {
+            wis[i]->setFirst();
+            wis[i]->setLast();
         }
     }
 
     void draw() {
         for(size_t i=0; i < ins.size(); i++) ins[i]->draw();
         for(size_t i=0; i < wis.size(); i++) wis[i]->draw();
+        for(size_t i=0; i < ags.size(); i++) ags[i]->draw();
     }
-
-    void setOut(std::string _id) {for(size_t i=0; i < ins.size(); i++) if(ins[i]->getValue() == _id) ins[i]->setOut(true);}
-    void setOutNeg(std::string _id) {for(size_t i=0; i < ins.size(); i++) if(ins[i]->getValue() == _id) ins[i]->setOutNeg(true);}
 
     void setEvent(event e) {
 
         if(e.type == ev_timer) draw();
+        /*
+        if(e.type == ev_mouse) {
+            for(size_t i=0; i < ins.size(); i++) {
+                ins[i]->setFocus(e.pos_x,e.pos_y);
+            }
+            for(size_t i=0; i < wis.size(); i++) {
+                wis[i]->setFocus(e.pos_x,e.pos_y);
+            }
+        }
 
-        if(e.type == ev_mouse) for(size_t i=0; i < ins.size(); i++) ins[i]->setFocus(e.pos_x,e.pos_y);
-
-        if(e.button == btn_left) for(size_t i=0; i < ins.size(); i++) ins[i]->setActive();
-    };
+        if(e.button == btn_left) {
+            for(size_t i=0; i < ins.size(); i++) {
+                ins[i]->setActive();
+            }
+            for(size_t i=0; i < wis.size(); i++) {
+                wis[i]->setActive();
+            }
+        }
+        */
+    }
 };
 
 
@@ -831,7 +938,7 @@ int main()
     table T(200,300,30);
 
     circuit C(1200,300);
-    C.setUp("1A0D1C+0D0C1E");
+    C.setUp("0D1C0E+0A1B0D+0C1E+1A1B0D0E+1C1D0E");
 
     //std::vector<std::vector<int> > prime_implicants;
 
@@ -846,7 +953,7 @@ int main()
         TB02->setEvent(ev);
         DB01->setEvent(ev);
 
-        C.draw();
+        C.setEvent(ev);
 
         T.setEvent(ev,convertStringToInt(DB01->getValue()));
 
