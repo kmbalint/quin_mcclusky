@@ -663,7 +663,32 @@ public:
 
 };
 
-class orgate : public base {};
+class orgate : public base {
+
+protected:
+
+    std::vector<std::string> ins;
+
+public:
+
+    orgate(int _x, int _y, int _part) : base(_x,_y,60,_part*12+6,"") {}
+
+    virtual void draw() {
+
+        setColor();
+        gout << move_to(x+12,y) << line(31,0) << line(12,height/2) << line(0,2) << line(-12,height/2) << line(-31,0) << line(12,-height/2) << line(0,-2) << line(-12,-height/2);
+
+    }
+
+    virtual void setActive() {}
+
+    void addInput(std::string str) {
+        value += str;
+        ins.push_back(str);
+    }
+
+    std::vector<std::string> getInputNames() {return ins;}
+};
 
 class circuit {
 
@@ -682,9 +707,10 @@ public:
 
     circuit(int _x, int _y):x(_x),y(_y),partsize(0),alip(1) {}
 
-    void addWire(std::string name) {
+    void addWire(std::string name, bool inor) {
 
-        wis.push_back(new wire(x+90+wis.size()*6,y,partsize,name));
+        if(inor) ;
+        else ;
 
     }
 
@@ -694,7 +720,11 @@ public:
 
     }
 
-    void addOrGate() {}
+    void addOrGate() {
+
+        og = new orgate(x+90+wis.size()*6+60+wis2.size()*6,y+6,ags.size());
+
+    }
 
     void addInput(std::string name, std::string type) {
 
@@ -721,6 +751,14 @@ public:
         return -1;
     }
 
+    int getWire2FromName(std::string str) {
+        for(size_t i = 0; i < wis2.size(); i++)
+            if(str == wis2[i]->getValue()) return i;
+
+        return -1;
+    }
+
+
     void setUp(std::string str) {
 
         for(size_t i = 0; i < str.length(); i++)
@@ -728,11 +766,11 @@ public:
 
         for(size_t i = 0; i < ins.size(); i++) {
             if(ins[i]->isOut()) {
-                addWire("1"+ins[i]->getValue());
+                wis.push_back(new wire(x+90+wis.size()*6,y,partsize,"1"+ins[i]->getValue()));
                 wis[wis.size()-1]->setPartIn(i*10+1,wis.size()*6+58);
             }
             if(ins[i]->isOutNeg()) {
-                addWire("0"+ins[i]->getValue());
+                wis.push_back(new wire(x+90+wis.size()*6,y,partsize,"0"+ins[i]->getValue()));
                 wis[wis.size()-1]->setPartIn(i*10+7,wis.size()*6+22);
             }
         }
@@ -747,6 +785,11 @@ public:
 
         for(size_t i = 0; i < ags.size(); i++) {
             std::vector<std::string> vs = ags[i]->getInputNames();
+
+            wis2.push_back(new wire(x+150+wis.size()*6+wis2.size()*6,y,partsize,ags[i]->getValue()));
+            wis2[wis2.size()-1]->setPartIn(ags[i]->getPart()+vs.size()-1,wis2.size()*6+4);
+            wis2[wis2.size()-1]->setPartOut(wis2.size()*2,(ags.size()-wis2.size())*6+18);
+
             for(size_t j = 0; j < vs.size(); j++) {
                 wis[getWireFromName(vs[j])]->setPartOut(ags[i]->getPart()+j*2,(wis.size()-getWireFromName(vs[j]))*6+8);
             }
@@ -758,40 +801,24 @@ public:
             wis[i]->setFirst();
             wis[i]->setLast();
         }
+        for(size_t i = 0; i < wis2.size(); i++) {
+            wis2[i]->setFirst();
+            wis2[i]->setLast();
+        }
     }
 
     void draw() {
         for(size_t i=0; i < ins.size(); i++) ins[i]->draw();
         for(size_t i=0; i < wis.size(); i++) wis[i]->draw();
+        for(size_t i=0; i < wis2.size(); i++) wis2[i]->draw();
         for(size_t i=0; i < ags.size(); i++) ags[i]->draw();
+        og->draw();
     }
 
     void setEvent(event e) {
-
         if(e.type == ev_timer) draw();
-        /*
-        if(e.type == ev_mouse) {
-            for(size_t i=0; i < ins.size(); i++) {
-                ins[i]->setFocus(e.pos_x,e.pos_y);
-            }
-            for(size_t i=0; i < wis.size(); i++) {
-                wis[i]->setFocus(e.pos_x,e.pos_y);
-            }
-        }
-
-        if(e.button == btn_left) {
-            for(size_t i=0; i < ins.size(); i++) {
-                ins[i]->setActive();
-            }
-            for(size_t i=0; i < wis.size(); i++) {
-                wis[i]->setActive();
-            }
-        }
-        */
     }
 };
-
-
 
 std::list<int> convert_to_binary(int dec){
 
@@ -830,7 +857,6 @@ int bw_count(std::list<int> bin){
     return bin_weight;
 
     }
-
 
 struct minterm{
 
@@ -898,7 +924,6 @@ bool is_neighbour(std::vector<minterm> m1, std::vector<minterm> m2){
 
 }
 
-
 std::vector<minterm> make_new_implicant(std::vector<minterm> m1, std::vector<minterm> m2){
 
     // std::vector<minterm> m12;
@@ -938,9 +963,9 @@ int main()
     table T(200,300,30);
 
     circuit C(1200,300);
-    C.setUp("0D1C0E+0A1B0D+0C1E+1A1B0D0E+1C1D0E");
+    C.setUp("1B1D0E+0A0C0D0E+1A1C1E0F+1A1B1C0D0F");
 
-    //std::vector<std::vector<int> > prime_implicants;
+    std::vector<std::vector<int> > prime_implicants;
 
     gin.timer(20);
 
